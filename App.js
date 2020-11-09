@@ -13,6 +13,7 @@ export default function App() {
 
 
   const [location, setLocation] = useState(null)
+  const [locationArr, setLocationArr] = useState([])
 
 
 
@@ -23,6 +24,10 @@ export default function App() {
     Geolocation.watchPosition(
       position => {
         const location = JSON.stringify(position);
+        let gg = locationArr
+        gg.push(position)
+        setLocationArr(gg)
+        
         console.log(location)
         setLocation(position)
         console.log(location)
@@ -144,6 +149,13 @@ export default function App() {
                 location.coords.longitude
               }
             </Text>
+            {locationArr &&
+            locationArr.map((item,i) => (
+              <Text key={i}>
+              { item.coords.longitude }
+            </Text>
+            ))
+            }
           </Body>
         </CardItem>
 
