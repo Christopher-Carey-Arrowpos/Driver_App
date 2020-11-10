@@ -31,6 +31,7 @@ export default class App extends Component {
     this.ff = this.ff.bind(this)
     this.getloc = this.getloc.bind(this)
     this.onSuccess = this.onSuccess.bind(this)
+    this.stop = this.stop.bind(this)
 
   }
 
@@ -43,14 +44,16 @@ export default class App extends Component {
 
       .then(function (response) {
         // console.log(response)
-        console.log("LOGGED IN")
+        // console.log("LOGGED IN")
         _this.setState({
           token: response.data.access_token,
-          user: response.data.user
+          user: response.data.user,
+          logged_in: true,
+          service: true
 
         }, () => {
           _this.getloc()
-          console.log("TRACKING CORDS")
+          // console.log("TRACKING CORDS")
         })
       })
       .catch(function (error) {
@@ -74,7 +77,7 @@ export default class App extends Component {
         }
       })
       .then(function (response) {
-        console.log(response)
+        // console.log(response)
         // _this.setState({
         //   token: response.access_token,
         //   user: response.data.user
@@ -89,12 +92,29 @@ export default class App extends Component {
   }
   onSuccess(e) {
 
-    console.log(e.data)
+    // console.log(e.data)
     let gg = JSON.parse(e.data)
-    console.log(gg)
+    // console.log(gg)
     this.exampleGetData(gg.email, gg.password)
 
 
+  }
+  stop(g) {
+    // console.log(g)
+    if (g == "start") {
+      this.setState({
+        service:true
+      },()=>{
+        BackgroundGeolocation.start()
+      })
+    } else {
+      this.setState({
+        service:false
+      },()=>{
+        // BackgroundGeolocation.removeAllListeners("stop")
+        BackgroundGeolocation.stop()
+      })
+    }
   }
 
 
@@ -103,32 +123,10 @@ export default class App extends Component {
 
   // ++++++++++++++++++++
   componentDidMount() {
-    // this.exampleGetData("chris@arrowpos.com","12345678")
-
-
-
 
   }
 
   getloc() {
-    // try {
-    //   const granted =  PermissionsAndroid.request(
-    //     PermissionsAndroid.PERMISSIONS. ACCESS_FINE_LOCATION,
-    //     {
-    //       title: 'Application wants location Permission',
-    //       message:
-    //         'Application wants location Permission',
-    //       buttonNeutral: 'Ask Me Later',
-    //       buttonNegative: 'Cancel',
-    //       buttonPositive: 'OK',
-    //     },
-    //   );
-    //   if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-    //   } else {
-    //   }
-    // } catch (err) {
-    //   console.warn(err);
-    // }
     BackgroundGeolocation.configure({
       desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
       stationaryRadius: 50,
@@ -143,7 +141,7 @@ export default class App extends Component {
       fastestInterval: 5000,
       activitiesInterval: 10000,
       stopOnStillActivity: false,
-      url: 'http://192.168.81.15:3000/location',
+      url: null,
       httpHeaders: {
         'X-FOO': 'bar'
       },
@@ -171,7 +169,7 @@ export default class App extends Component {
 
       }, () => {
         // this.ff()
-        console.log("CORDS LOGGED")
+        // console.log("CORDS LOGGED")
 
       })
 
@@ -191,19 +189,19 @@ export default class App extends Component {
     });
 
     BackgroundGeolocation.on('error', (error) => {
-      console.log('[ERROR] BackgroundGeolocation error:', error);
+      // console.log('[ERROR] BackgroundGeolocation error:', error);
     });
 
     BackgroundGeolocation.on('start', () => {
-      console.log('[INFO] BackgroundGeolocation service has been started');
+      // console.log('[INFO] BackgroundGeolocation service has been started');
     });
 
     BackgroundGeolocation.on('stop', () => {
-      console.log('[INFO] BackgroundGeolocation service has been stopped');
+      // console.log('[INFO] BackgroundGeolocation service has been stopped');
     });
 
     BackgroundGeolocation.on('authorization', (status) => {
-      console.log('[INFO] BackgroundGeolocation authorization status: ' + status);
+      // console.log('[INFO] BackgroundGeolocation authorization status: ' + status);
       if (status !== BackgroundGeolocation.AUTHORIZED) {
         // we need to set delay or otherwise alert may not be shown
         setTimeout(() =>
@@ -215,15 +213,15 @@ export default class App extends Component {
     });
 
     BackgroundGeolocation.on('background', () => {
-      console.log('[INFO] App is in background');
+      // console.log('[INFO] App is in background');
     });
 
     BackgroundGeolocation.on('foreground', () => {
-      console.log('[INFO] App is in foreground');
+      // console.log('[INFO] App is in foreground');
     });
 
     BackgroundGeolocation.on('abort_requested', () => {
-      console.log('[INFO] Server responded with 285 Updates Not Required');
+      // console.log('[INFO] Server responded with 285 Updates Not Required');
 
       // Here we can decide whether we want stop the updates or not.
       // If you've configured the server to return 285, then it means the server does not require further update.
@@ -232,7 +230,7 @@ export default class App extends Component {
     });
 
     BackgroundGeolocation.on('http_authorization', () => {
-      console.log('[INFO] App needs to authorize the http requests');
+      // console.log('[INFO] App needs to authorize the http requests');
     });
 
     // BackgroundGeolocation.checkStatus(status => {
@@ -277,25 +275,31 @@ export default class App extends Component {
   render() {
 
     return (
-
       <SafeAreaView>
         <ScrollView>
+          {!this.state.logged_in ?
             <View>
               <QRCodeScanner
                 onRead={this.onSuccess}
                 fadeIn={true}
                 showMarker={true}
-
                 bottomContent={
-
                   <Text>Scan Code</Text>
-
                 }
               />
-
             </View>
+            :
+            <View>
+              <View style={{flex:1, flexDirection:'row'}}>
+            <Text style={{marginRight:100}}>{this.state.user.name} - Logged In</Text>
+            {this.state.service ?
+            <Text>Service Started</Text>
+            :
+            <Text>Service Stopped</Text>
 
-          <View>
+            }
+
+              </View>
 
             <Card>
               <CardItem header>
@@ -335,10 +339,22 @@ export default class App extends Component {
               </CardItem>
 
             </Card>
+            {this.state.logged_in ?
+              this.state.service ?
+              <Button
+                title="Stop"
+                onPress={() => { this.stop('stop') }} />
+              :
+              <Button
+                title="Start"
+                onPress={() => { this.stop('start') }} />
+                :
+                null
+            }
           </View>
+          }
         </ScrollView>
       </SafeAreaView>
-
     );
   }
 }
