@@ -1,16 +1,19 @@
 import React, { Component, useState } from "react";
-import { View, Button, Alert } from "react-native";
+import { View, Button, Alert, SafeAreaView, ScrollView } from "react-native";
 import { useForm, Controller, get } from "react-hook-form";
 import { Item, Input, Label } from 'native-base';
 import Geolocation from '@react-native-community/geolocation';
 import { Card, CardItem, Text, Body } from 'native-base';
 import axios from "axios";
+import QRCodeScanner from 'react-native-qrcode-scanner';
+import { RNCamera } from 'react-native-camera';
 
 
 import { PermissionsAndroid } from 'react-native';
 
 // import { Alert } from 'react-native';
 import BackgroundGeolocation from '@mauron85/react-native-background-geolocation';
+import { Header } from "react-native/Libraries/NewAppScreen";
 
 
 export default class App extends Component {
@@ -27,24 +30,27 @@ export default class App extends Component {
     this.exampleGetData = this.exampleGetData.bind(this)
     this.ff = this.ff.bind(this)
     this.getloc = this.getloc.bind(this)
+    this.onSuccess = this.onSuccess.bind(this)
 
   }
 
-  exampleGetData() {
+  exampleGetData(email, password) {
     let _this = this;
     axios.post('https://ic-stage.arrowpos.com/api/login', {
-      email: "chris@arrowpos.com",
-      password: "12345678"
+      email: email,
+      password: password
     })
 
       .then(function (response) {
-        console.log(response)
+        // console.log(response)
+        console.log("LOGGED IN")
         _this.setState({
           token: response.data.access_token,
           user: response.data.user
 
         }, () => {
           _this.getloc()
+          console.log("TRACKING CORDS")
         })
       })
       .catch(function (error) {
@@ -81,18 +87,31 @@ export default class App extends Component {
       });
 
   }
+  onSuccess(e) {
+
+    console.log(e.data)
+    let gg = JSON.parse(e.data)
+    console.log(gg)
+    this.exampleGetData(gg.email, gg.password)
+
+
+  }
+
+
 
 
 
   // ++++++++++++++++++++
   componentDidMount() {
-    this.exampleGetData()
+    // this.exampleGetData("chris@arrowpos.com","12345678")
 
- 
+
+
+
   }
 
-  getloc(){
-       // try {
+  getloc() {
+    // try {
     //   const granted =  PermissionsAndroid.request(
     //     PermissionsAndroid.PERMISSIONS. ACCESS_FINE_LOCATION,
     //     {
@@ -112,8 +131,8 @@ export default class App extends Component {
     // }
     BackgroundGeolocation.configure({
       desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
-      stationaryRadius: 0,
-      distanceFilter: 0,
+      stationaryRadius: 50,
+      distanceFilter: 50,
       notificationTitle: 'Background tracking',
       notificationText: 'enabled',
       debug: true,
@@ -143,15 +162,16 @@ export default class App extends Component {
       // to perform long running operation on iOS
       // you need to create background task
 
-      console.log(location)
+      // console.log(location)
       let gg = this.state.locationArr
       gg.push(location)
       this.setState({
         locationArr: gg,
         locationSig: location
 
-      },()=>{
-        this.ff()
+      }, () => {
+        // this.ff()
+        console.log("CORDS LOGGED")
 
       })
 
@@ -160,7 +180,7 @@ export default class App extends Component {
         // execute long running task
         // eg. ajax post location
         // IMPORTANT: task has to be ended by endTask
-        // BackgroundGeolocation.endTask(taskKey);
+        BackgroundGeolocation.endTask(taskKey);
       });
     });
 
@@ -215,19 +235,19 @@ export default class App extends Component {
       console.log('[INFO] App needs to authorize the http requests');
     });
 
-    BackgroundGeolocation.checkStatus(status => {
-      console.log('[INFO] BackgroundGeolocation service is running', status.isRunning);
-      console.log('[INFO] BackgroundGeolocation services enabled', status.locationServicesEnabled);
-      console.log('[INFO] BackgroundGeolocation auth status: ' + status.authorization);
+    // BackgroundGeolocation.checkStatus(status => {
+    //   console.log('[INFO] BackgroundGeolocation service is running', status.isRunning);
+    //   console.log('[INFO] BackgroundGeolocation services enabled', status.locationServicesEnabled);
+    //   console.log('[INFO] BackgroundGeolocation auth status: ' + status.authorization);
 
-      // you don't need to check status before start (this is just the example)
-      if (!status.isRunning) {
-        BackgroundGeolocation.start(); //triggers start on start event
-      }
-    });
+    //   // you don't need to check status before start (this is just the example)
+    //   if (!status.isRunning) {
+    //     BackgroundGeolocation.start(); //triggers start on start event
+    //   }
+    // });
 
     // you can also just start without checking for status
-    // BackgroundGeolocation.start();
+    BackgroundGeolocation.start();
   }
 
 
@@ -258,80 +278,67 @@ export default class App extends Component {
 
     return (
 
-      <View>
-        {/* <Controller
-          control={control}
-          render={({ onChange, onBlur, value }) => (
-            <Item floatingLabel>
-              <Label>Email</Label>
-              <Input
-                // style={styles.input}
-                onBlur={onBlur}
-                onChangeText={value => onChange(value)}
-                value={value}
-              />
-            </Item>
-          )}
-          name="email"
-          // rules={{ required: true }}
-          defaultValue=""
-        />
-        <Controller
-          control={control}
-          render={({ onChange, onBlur, value }) => (
-            <Item floatingLabel>
-              <Label>Password</Label>
-              <Input
-                // style={styles.input}
-                onBlur={onBlur}
-                onChangeText={value => onChange(value)}
-                value={value}
-              />
-            </Item>
-          )}
-          name="password"
-          defaultValue=""
-        />
-        <Button title="Submit" onPress={handleSubmit(onSubmit)} /> */}
-        <Card>
-          <CardItem header>
-            <Text>Long</Text>
-          </CardItem>
-          <CardItem>
-            <Body>
-              <Text>
-                {this.state.locationSig &&
-                  this.state.locationSig.longitude
+      <SafeAreaView>
+        <ScrollView>
+            <View>
+              <QRCodeScanner
+                onRead={this.onSuccess}
+                fadeIn={true}
+                showMarker={true}
+
+                bottomContent={
+
+                  <Text>Scan Code</Text>
+
                 }
-              </Text>
-              {this.state.locationArr &&
-                this.state.locationArr.map((item, i) => (
-                  <Text key={i}>
-                    { item.longitude}
+              />
+
+            </View>
+
+          <View>
+
+            <Card>
+              <CardItem header>
+                <Text>Long</Text>
+              </CardItem>
+              <CardItem>
+                <Body>
+                  <Text>
+                    {this.state.locationSig &&
+                      this.state.locationSig.longitude
+                    }
                   </Text>
-                ))
-              }
-            </Body>
-          </CardItem>
+                  {this.state.locationArr &&
+                    this.state.locationArr.map((item, i) => (
+                      <Text key={i}>
+                        { item.longitude}
+                      </Text>
+                    ))
+                  }
+                </Body>
+              </CardItem>
 
-        </Card>
-        <Card>
-          <CardItem header>
-            <Text>Lat</Text>
-          </CardItem>
-          <CardItem>
-            <Body>
-              <Text>
-                {this.state.locationSig &&
-                  this.state.locationSig.latitude
+            </Card>
+            <Card>
+              <CardItem header>
+                <Text>Lat</Text>
+              </CardItem>
+              <CardItem>
+                <Body>
+                  <Text>
+                    {this.state.locationSig &&
+                      this.state.locationSig.latitude
 
-                }
-              </Text>
-            </Body>
-          </CardItem>
+                    }
+                  </Text>
+                </Body>
+              </CardItem>
 
-        </Card>
-      </View>
+            </Card>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+
     );
   }
 }
